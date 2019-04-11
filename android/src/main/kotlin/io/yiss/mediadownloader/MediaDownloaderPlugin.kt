@@ -1,9 +1,48 @@
+package io.yiss.mediadownloader
+
 import android.app.DownloadManager
 import android.content.Context
 import android.net.Uri
 import android.os.Environment
 import android.util.Log
+import io.flutter.plugin.common.MethodCall
+import io.flutter.plugin.common.MethodChannel
+import io.flutter.plugin.common.MethodChannel.MethodCallHandler
+import io.flutter.plugin.common.MethodChannel.Result
+import io.flutter.plugin.common.PluginRegistry.Registrar
 import java.io.File
+
+
+class MediaDownloaderPlugin: MethodCallHandler {
+
+
+
+  companion object {
+      private lateinit var mediaDownloader: MediaDownloader
+    @JvmStatic
+    fun registerWith(registrar: Registrar) {
+      val channel = MethodChannel(registrar.messenger(), "io.yiss/media_downloader")
+      this.mediaDownloader = MediaDownloader(registrar.context())
+        channel.setMethodCallHandler(MediaDownloaderPlugin())
+
+    }
+  }
+
+  override fun onMethodCall(call: MethodCall, result: Result) {
+    if (call.method == "getMediaFile") {
+        val url = call.argument<String>("url")!!
+        val mimeType = call.argument<String>("mimeType")!!
+        val fileExtension = call.argument<String>("fileExtension")
+        val fileName = call.argument<String>("fileName")
+        val showNotification = call.argument<Boolean>("fileName")
+        val directory = call.argument<String>("directory")
+        mediaDownloader.download(url, mimeType, fileExtension, fileName,showNotification, directory)
+      result.success("Android ${android.os.Build.VERSION.RELEASE}")
+    } else {
+      result.notImplemented()
+    }
+  }
+}
 
 
 class MediaDownloader(context: Context) {
@@ -14,7 +53,7 @@ class MediaDownloader(context: Context) {
         const val LOG_TAG = "MEDIA_DOWNLOADER"
     }
 
-    fun download(url: String, mimeType: String, fileExtension: String, fileName: String?, showNotification: Boolean?, directory: String?) {
+    fun download(url: String, mimeType: String, fileExtension: String?, fileName: String?, showNotification: Boolean?, directory: String?) {
         val separator = File.separator
 
         val storageDirectoryPath = if (directory != null) {
